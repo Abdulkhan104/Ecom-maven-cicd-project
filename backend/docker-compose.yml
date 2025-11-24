@@ -1,0 +1,54 @@
+version: "3"
+services:
+  mydb:
+    image: mysql:latest
+    container_name: mydb
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD} #Ganesh$9579
+    networks:
+      - appents
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - mydb_data:/var/lib/mysql
+  be-app:
+    container_name: be-app
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    environment:
+      MYSQL_HOST: ${MYSQL_HOST} #"jdbc:mysql://mydb:3306/datastore?createDatabaseIfNotExist=true"
+      MYSQL_USERNAME: ${MYSQL_UNAME}  #root
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    links:
+      - mydb
+    depends_on:
+      mydb:
+        condition: service_healthy
+    networks:
+      - appents
+  fe-app:
+    container_name: fe-app
+    build:
+      context: "../../../ecommerce multivendor -frontend/ecommerce multivendor -frontend"
+      dockerfile: Dockerfile
+    environment:
+      API_URL: http://be-app:5454
+    ports:
+      - "9797:80"
+    links:
+      - be-app
+    depends_on:
+      - be-app
+    networks:
+      - appents
+networks:
+  appents:
+    driver: bridge
+
+volumes:
+  mydb_data:
